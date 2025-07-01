@@ -10,6 +10,7 @@ import plotly.graph_objects as go
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 import calendar
+import os
 
 # Configure page first with default title
 st.set_page_config(
@@ -18,6 +19,15 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# Auto-detect cloud deployment and set environment variable
+if not os.environ.get('STREAMLIT_CLOUD_DEPLOYMENT'):
+    # Auto-detect Streamlit Cloud environment
+    if (hasattr(st, 'experimental_get_query_params') or 
+        'streamlit.app' in os.environ.get('PWD', '') or
+        'share.streamlit.io' in os.environ.get('HTTP_HOST', '') or
+        os.path.exists('/app')):  # Common cloud deployment paths
+        os.environ['STREAMLIT_CLOUD_DEPLOYMENT'] = 'true'
 
 # Import our budget manager services
 from budget_manager.services.budget_service import BudgetService
@@ -70,14 +80,19 @@ if not user:
 
 user_id = get_current_user_id()
 
-# Initialize services
+# Initialize services with error handling for cloud deployment
 @st.cache_resource
 def get_services():
-    return {
-        'budget': BudgetService(),
-        'expense': ExpenseService(),
-        'recommendation': RecommendationService()
-    }
+    try:
+        return {
+            'budget': BudgetService(),
+            'expense': ExpenseService(),
+            'recommendation': RecommendationService()
+        }
+    except Exception as e:
+        st.error(f"❌ Error initializing services: {str(e)}")
+        st.info("🔄 Please refresh the page. If the error persists, try resetting the database.")
+        st.stop()
 
 services = get_services()
 
@@ -130,10 +145,33 @@ st.sidebar.title(f"🏦 {t('navigation')}")
 auth_ui = AuthUI()
 auth_ui.render_user_menu()
 
-page = st.sidebar.selectbox(
-    t("choose_option"),
-    [f"📊 {t('dashboard')}", f"💰 {t('income_goals')}", f"💸 {t('expenses')}", f"📈 {t('reports')}", f"⚙️ {t('settings')}"]
-)
+# Handle navigation via session state or selectbox
+if 'nav_page' in st.session_state and st.session_state.nav_page:
+    # Use session state navigation if set
+    page = st.session_state.nav_page
+    st.session_state.nav_page = None  # Clear after use
+    
+    # Update selectbox to match navigation
+    page_options = [f"📊 {t('dashboard')}", f"💰 {t('income_goals')}", f"💸 {t('expenses')}", f"📈 {t('reports')}", f"⚙️ {t('settings')}"]
+    try:
+        page_index = page_options.index(page)
+    except ValueError:
+        page_index = 0
+        page = page_options[0]
+    
+    # Show selectbox with correct selection
+    page = st.sidebar.selectbox(
+        t("choose_option"),
+        page_options,
+        index=page_index,
+        key="nav_selectbox"
+    )
+else:
+    # Normal selectbox navigation
+    page = st.sidebar.selectbox(
+        t("choose_option"),
+        [f"📊 {t('dashboard')}", f"💰 {t('income_goals')}", f"💸 {t('expenses')}", f"📈 {t('reports')}", f"⚙️ {t('settings')}"]
+    )
 
 # Main title with user welcome
 col1, col2 = st.columns([3, 1])
@@ -328,10 +366,13 @@ if page == f"📊 {t('dashboard')}":
             col1, col2 = st.columns(2)
             with col1:
                 if st.button("💰 Set Income", use_container_width=True):
-                    st.switch_page("💰 Income & Goals")
+                    # Use session state for navigation instead of switch_page for better compatibility
+                    st.session_state.nav_page = f"💰 {t('income_goals')}"
+                    st.rerun()
             with col2:
                 if st.button("💸 Add Expense", use_container_width=True):
-                    st.switch_page("💸 Expenses")
+                    st.session_state.nav_page = f"💸 {t('expenses')}"
+                    st.rerun()
     
     except Exception as e:
         st.error(f"❌ Error loading dashboard: {str(e)}")
@@ -814,7 +855,132 @@ elif page == "📈 Reports":
 elif page == "⚙️ Settings":
     st.header("⚙️ Application Settings")
     
-    tab1, tab2 = st.tabs(["🗃️ Data Management", "📊 Preferences"])
+    tab1, tab2, tab3 = st.tabs(["🗃️ Data Management", "📊 Preferences", "🎭 Demo Data"])
+    
+    with tab3:
+        st.subheader("🎭 Demo Data Generator")
+        st.info("💡 Quickly generate sample data to test all app features in deploy mode!")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.write("**Generate Sample Income & Goals**")
+            if st.button("💰 Add Sample Income", use_container_width=True):
+                try:
+                    from decimal import Decimal
+                    from datetime import date
+                    
+                    # Add sample income
+                    income = services['budget'].add_income(
+                        user_id=user_id,
+                        amount=Decimal("3000.00"),
+                        month=date.today(),
+                        description="Sample Monthly Salary"
+                    )
+                    
+                    # Add sample savings goal
+                    goal = services['budget'].set_savings_goal(
+                        user_id=user_id,
+                        target_amount=Decimal("600.00"),
+                        month=date.today(),
+                        description="Sample Emergency Fund Goal"
+                    )
+                    
+                    st.success("✅ Sample income and goal added!")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ Error adding sample data: {str(e)}")
+            
+            st.write("**Generate Sample Expenses**")
+            if st.button("💸 Add Sample Expenses", use_container_width=True):
+                try:
+                    from decimal import Decimal
+                    from datetime import date, timedelta
+                    import random
+                    
+                    # Sample expenses data
+                    sample_expenses = [
+                        (50.00, "Groceries", "food"),
+                        (25.50, "Lunch", "food"),
+                        (200.00, "Electricity Bill", "utilities"),
+                        (45.75, "Gas Station", "transportation"),
+                        (30.00, "Movie Tickets", "entertainment"),
+                        (15.00, "Coffee", "food"),
+                        (80.00, "Phone Bill", "utilities"),
+                        (120.00, "Dinner Out", "food"),
+                        (60.00, "Uber Rides", "transportation"),
+                        (35.00, "Streaming Service", "entertainment")
+                    ]
+                    
+                    added_count = 0
+                    for amount, desc, category in sample_expenses:
+                        try:
+                            # Add expenses over the last 10 days
+                            days_ago = random.randint(0, 10)
+                            expense_date = date.today() - timedelta(days=days_ago)
+                            
+                            services['expense'].add_expense(
+                                user_id=user_id,
+                                amount=Decimal(str(amount)),
+                                description=desc,
+                                category=ExpenseCategory(category),
+                                expense_date=expense_date
+                            )
+                            added_count += 1
+                        except Exception:
+                            continue
+                    
+                    st.success(f"✅ Added {added_count} sample expenses!")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ Error adding sample expenses: {str(e)}")
+        
+        with col2:
+            st.write("**Test All Features**")
+            st.info("""
+            After generating demo data, you can test:
+            
+            📊 **Dashboard**: View budget overview, charts, and recommendations
+            
+            💰 **Income & Goals**: See sample income and savings goals
+            
+            💸 **Expenses**: Browse sample expense history and categories
+            
+            📈 **Reports**: Generate monthly reports and trend analysis
+            
+            ⚙️ **Settings**: Export data and manage preferences
+            """)
+            
+            st.write("**Quick Reset**")
+            if st.button("🔄 Clear All Demo Data", use_container_width=True):
+                try:
+                    # This would be the same as the full database reset
+                    from pathlib import Path
+                    import os
+                    from budget_manager.core.database import DatabaseManager
+                    
+                    # Get database path
+                    try:
+                        if os.environ.get('STREAMLIT_CLOUD_DEPLOYMENT'):
+                            data_dir = Path("./data")
+                        else:
+                            data_dir = Path.home() / ".budget_manager"
+                        db_path = data_dir / "budget.db"
+                    except (PermissionError, OSError):
+                        data_dir = Path("./data")
+                        db_path = data_dir / "budget.db"
+                    
+                    # Delete and recreate database
+                    if db_path.exists():
+                        os.remove(db_path)
+                    
+                    DatabaseManager()
+                    st.cache_resource.clear()
+                    
+                    st.success("✅ Demo data cleared!")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ Error clearing data: {str(e)}")
     
     with tab1:
         st.subheader("🗃️ Data Management")
@@ -1069,11 +1235,17 @@ elif page == "⚙️ Settings":
 
 # Footer
 st.markdown("---")
+
+# Cloud deployment info
+deployment_info = ""
+if os.environ.get('STREAMLIT_CLOUD_DEPLOYMENT'):
+    deployment_info = "<br>☁️ <small>Running in Cloud Mode - Data resets on redeployment</small>"
+
 st.markdown(
-    """
+    f"""
     <div style='text-align: center; color: gray; padding: 1rem;'>
     💰 Smart Budget Manager | Built with ❤️ using Streamlit<br>
-    Manage your finances intelligently and achieve your savings goals!
+    Manage your finances intelligently and achieve your savings goals!{deployment_info}
     </div>
     """, 
     unsafe_allow_html=True
