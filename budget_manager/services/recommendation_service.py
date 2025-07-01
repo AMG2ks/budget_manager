@@ -68,8 +68,7 @@ class RecommendationService:
             monthly_income=monthly_income,
             savings_target=savings_goal.target_amount,
             current_month_expenses=current_expenses,
-            target_date=target_date,
-            current_month=month
+            target_date=target_date
         )
     
     def get_monthly_summary(self, user_id: int, month: date = None) -> Optional[BudgetSummary]:
