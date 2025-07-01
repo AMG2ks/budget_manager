@@ -1,0 +1,9 @@
+{
+  "currency": "TND",
+  "savings_target_day": 3,
+  "date_format": "%Y-%m-%d",
+  "theme": "default",
+  "decimal_places": 2,
+  "show_cents": true,
+  "group_thousands": true
+}

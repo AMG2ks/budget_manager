@@ -856,9 +856,17 @@ elif page == "⚙️ Settings":
                         import os
                         from budget_manager.core.database import DatabaseManager
                         
-                        # Get database path
-                        data_dir = Path.home() / ".budget_manager"
-                        db_path = data_dir / "budget.db"
+                        # Get database path - try home directory first, fallback to current directory
+                        try:
+                            import os
+                            if os.environ.get('STREAMLIT_CLOUD_DEPLOYMENT'):
+                                data_dir = Path("./data")
+                            else:
+                                data_dir = Path.home() / ".budget_manager"
+                            db_path = data_dir / "budget.db"
+                        except (PermissionError, OSError):
+                            data_dir = Path("./data")
+                            db_path = data_dir / "budget.db"
                         
                         # Delete the database file
                         if db_path.exists():

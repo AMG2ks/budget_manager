@@ -24,13 +24,26 @@ class DatabaseManager:
         Initialize database manager.
         
         Args:
-            db_path: Path to SQLite database file. If None, uses default location.
+            db_path: Custom database path. If None, uses default location.
         """
         if db_path is None:
-            # Create data directory in user's home
-            data_dir = Path.home() / ".budget_manager"
-            data_dir.mkdir(exist_ok=True)
-            db_path = str(data_dir / "budget.db")
+            # Try to use user's home directory, fall back to current directory for deployment
+            try:
+                import os
+                if os.environ.get('STREAMLIT_CLOUD_DEPLOYMENT'):
+                    # For Streamlit Cloud deployment, use current directory
+                    data_dir = Path("./data")
+                else:
+                    # For local development, use home directory
+                    data_dir = Path.home() / ".budget_manager"
+                
+                data_dir.mkdir(exist_ok=True)
+                db_path = str(data_dir / "budget.db")
+            except (PermissionError, OSError):
+                # Fallback to current directory if home directory isn't accessible
+                data_dir = Path("./data")
+                data_dir.mkdir(exist_ok=True)
+                db_path = str(data_dir / "budget.db")
         
         self.db_path = db_path
         self.engine = create_engine(f"sqlite:///{db_path}", echo=False)

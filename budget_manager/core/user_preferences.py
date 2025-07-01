@@ -46,10 +46,23 @@ class UserPreferences:
             preferences_file: Custom path to preferences file. If None, uses default.
         """
         if preferences_file is None:
-            # Store preferences in the same directory as the database
-            data_dir = Path.home() / ".budget_manager"
-            data_dir.mkdir(exist_ok=True)
-            preferences_file = str(data_dir / "preferences.json")
+            # Try to use user's home directory, fall back to current directory for deployment
+            try:
+                import os
+                if os.environ.get('STREAMLIT_CLOUD_DEPLOYMENT'):
+                    # For Streamlit Cloud deployment, use current directory
+                    data_dir = Path("./data")
+                else:
+                    # For local development, use home directory
+                    data_dir = Path.home() / ".budget_manager"
+                
+                data_dir.mkdir(exist_ok=True)
+                preferences_file = str(data_dir / "preferences.json")
+            except (PermissionError, OSError):
+                # Fallback to current directory if home directory isn't accessible
+                data_dir = Path("./data")
+                data_dir.mkdir(exist_ok=True)
+                preferences_file = str(data_dir / "preferences.json")
         
         self.preferences_file = preferences_file
         self._preferences = self._load_preferences()
