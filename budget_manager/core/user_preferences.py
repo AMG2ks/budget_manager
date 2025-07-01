@@ -84,7 +84,8 @@ class UserPreferences:
             "theme": "default",
             "decimal_places": 2,
             "show_cents": True,
-            "group_thousands": True
+            "group_thousands": True,
+            "language": "en"  # Default to English
         }
     
     def _save_preferences(self) -> None:
@@ -173,6 +174,15 @@ class UserPreferences:
         self._preferences["theme"] = theme
         self._save_preferences()
     
+    def get_language(self) -> str:
+        """Get the user's language preference."""
+        return self._preferences.get("language", "en")
+    
+    def set_language(self, language: str) -> None:
+        """Set the user's language preference."""
+        self._preferences["language"] = language
+        self._save_preferences()
+    
     def get_all_preferences(self) -> Dict[str, Any]:
         """Get all preferences as a dictionary."""
         return self._preferences.copy()
@@ -186,7 +196,8 @@ class UserPreferences:
             "theme": "default",
             "decimal_places": 2,
             "show_cents": True,
-            "group_thousands": True
+            "group_thousands": True,
+            "language": "en"
         }
         self._save_preferences()
     

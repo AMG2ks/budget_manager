@@ -11,7 +11,7 @@ from sqlalchemy import create_engine, and_
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.exc import SQLAlchemyError
 
-from .models import Base, BudgetEntryDB, ExpenseDB, SavingsGoalDB
+from .models import Base, IncomeEntryDB, ExpenseDB, SavingsGoalDB, User
 
 T = TypeVar('T')
 

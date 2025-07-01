@@ -1,6 +1,6 @@
 """
 Smart Budget Manager - Web Interface
-A beautiful and intuitive web application for managing your personal finances.
+A beautiful and intuitive multi-user web application for managing your personal finances.
 """
 
 import streamlit as st
@@ -11,7 +11,7 @@ from datetime import date, datetime, timedelta
 from decimal import Decimal
 import calendar
 
-# Configure page
+# Configure page first with default title
 st.set_page_config(
     page_title="Smart Budget Manager",
     page_icon="💰",
@@ -26,6 +26,49 @@ from budget_manager.services.recommendation_service import RecommendationService
 from budget_manager.core.models import ExpenseCategory
 from budget_manager.utils.formatters import Formatters
 from budget_manager.core.user_preferences import get_user_preferences, Currency
+from budget_manager.utils.translations import t, Language, set_language, get_current_language, is_rtl
+from auth_components import check_authentication, get_current_user_id, AuthUI
+
+# Initialize language after imports
+try:
+    prefs = get_user_preferences()
+    lang_code = prefs.get_language()
+    language = Language(lang_code)
+    set_language(language)
+except:
+    set_language(Language.ENGLISH)
+
+# RTL CSS support for Arabic
+if is_rtl():
+    st.markdown("""
+    <style>
+    .main .block-container {
+        direction: rtl;
+        text-align: right;
+    }
+    .stSelectbox > label {
+        direction: rtl;
+    }
+    .stMetric {
+        direction: rtl;
+    }
+    .stHeader {
+        direction: rtl;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+# Authentication check - must be at the top
+user = check_authentication()
+if not user:
+    # Show authentication form if user is not authenticated
+    auth_ui = AuthUI()
+    authenticated = auth_ui.render_auth_form()
+    if not authenticated:
+        st.stop()
+    user = auth_ui.get_current_user()
+
+user_id = get_current_user_id()
 
 # Initialize services
 @st.cache_resource
@@ -81,14 +124,24 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Sidebar navigation
-st.sidebar.title("🏦 Navigation")
+st.sidebar.title(f"🏦 {t('navigation')}")
+
+# Add user menu in sidebar
+auth_ui = AuthUI()
+auth_ui.render_user_menu()
+
 page = st.sidebar.selectbox(
-    "Choose a page:",
-    ["📊 Dashboard", "💰 Income & Goals", "💸 Expenses", "📈 Reports", "⚙️ Settings"]
+    t("choose_option"),
+    [f"📊 {t('dashboard')}", f"💰 {t('income_goals')}", f"💸 {t('expenses')}", f"📈 {t('reports')}", f"⚙️ {t('settings')}"]
 )
 
-# Main title
-st.markdown('<h1 class="main-header">💰 Smart Budget Manager</h1>', unsafe_allow_html=True)
+# Main title with user welcome
+col1, col2 = st.columns([3, 1])
+with col1:
+    st.markdown(f'<h1 class="main-header">💰 {t("welcome_message", user.full_name or user.username)}</h1>', unsafe_allow_html=True)
+with col2:
+    if st.button(f"🚪 {t('logout')}", key="main_logout"):
+        auth_ui.logout()
 
 def format_currency(amount):
     """Format currency with user preferences."""
@@ -129,18 +182,18 @@ def create_progress_bar(current, target, label):
     return fig
 
 # Dashboard Page
-if page == "📊 Dashboard":
-    st.header("📊 Budget Dashboard")
+if page == f"📊 {t('dashboard')}":
+    st.header(f"📊 {t('budget_dashboard')}")
     
     # Get current month data
     today = date.today()
     
     try:
         # Get recommendation and summary
-        recommendation = services['recommendation'].get_daily_recommendation()
-        summary = services['recommendation'].get_monthly_summary()
-        alerts = services['recommendation'].get_smart_alerts()
-        progress = services['recommendation'].get_savings_progress()
+        recommendation = services['recommendation'].get_daily_recommendation(user_id)
+        summary = services['recommendation'].get_monthly_summary(user_id)
+        alerts = services['recommendation'].get_smart_alerts(user_id)
+        progress = services['recommendation'].get_savings_progress(user_id)
         
         if summary:
             # Main metrics
@@ -148,35 +201,35 @@ if page == "📊 Dashboard":
             
             with col1:
                 st.metric(
-                    label="💵 Monthly Income", 
+                    label=f"💵 {t('monthly_income')}", 
                     value=format_currency(float(summary.total_income)),
                     delta=None
                 )
             
             with col2:
                 st.metric(
-                    label="💸 Total Expenses", 
+                    label=f"💸 {t('total_expenses')}", 
                     value=format_currency(float(summary.total_expenses)),
                     delta=f"-{format_currency(float(summary.total_expenses))}"
                 )
             
             with col3:
                 st.metric(
-                    label="💰 Current Savings", 
+                    label=f"💰 {t('current_savings')}", 
                     value=format_currency(float(summary.actual_savings)),
                     delta=f"+{format_currency(float(summary.actual_savings))}"
                 )
             
             with col4:
                 st.metric(
-                    label="🎯 Savings Target", 
+                    label=f"🎯 {t('savings_target')}", 
                     value=format_currency(float(summary.savings_target)),
                     delta=None
                 )
             
             # Daily recommendation section
             if recommendation:
-                st.subheader("💡 Today's Smart Recommendation")
+                st.subheader(f"💡 {t('smart_recommendation')}")
                 
                 col1, col2 = st.columns([2, 1])
                 
@@ -253,7 +306,7 @@ if page == "📊 Dashboard":
                     st.plotly_chart(fig_bar, use_container_width=True)
             
             # Recent expenses
-            recent_expenses = services['expense'].get_expenses(limit=5)
+            recent_expenses = services['expense'].get_expenses(user_id, limit=5)
             if recent_expenses:
                 st.subheader("💳 Recent Expenses")
                 
@@ -312,6 +365,7 @@ elif page == "💰 Income & Goals":
                     try:
                         month_date = datetime.strptime(month_str, "%Y-%m").date()
                         entry = services['budget'].add_income(
+                            user_id=user_id,
                             amount=Decimal(str(amount)),
                             month=month_date,
                             description=description if description else None
@@ -323,14 +377,14 @@ elif page == "💰 Income & Goals":
         
         with col2:
             # Current month income
-            current_income = services['budget'].get_monthly_income(date.today())
+            current_income = services['budget'].get_monthly_income(user_id, date.today())
             st.metric(
                 "Current Month Income", 
                 format_currency(float(current_income))
             )
             
             # Income history
-            income_entries = services['budget'].get_income_entries()
+            income_entries = services['budget'].get_income_entries(user_id)
             if income_entries:
                 st.write("**Recent Entries:**")
                 for entry in income_entries[-3:]:
@@ -358,6 +412,7 @@ elif page == "💰 Income & Goals":
                     try:
                         month_date = datetime.strptime(month_str, "%Y-%m").date()
                         goal = services['budget'].set_savings_goal(
+                            user_id=user_id,
                             target_amount=Decimal(str(target_amount)),
                             month=month_date,
                             description=description if description else None
@@ -369,7 +424,7 @@ elif page == "💰 Income & Goals":
         
         with col2:
             # Current goal
-            current_goal = services['budget'].get_savings_goal(date.today())
+            current_goal = services['budget'].get_savings_goal(user_id, date.today())
             if current_goal:
                 st.metric(
                     "Current Month Goal", 
@@ -408,6 +463,7 @@ elif page == "💸 Expenses":
                 if st.form_submit_button("💸 Add Expense", use_container_width=True):
                     try:
                         expense = services['expense'].add_expense(
+                            user_id=user_id,
                             amount=Decimal(str(amount)),
                             description=description,
                             category=ExpenseCategory(category),
@@ -416,7 +472,7 @@ elif page == "💸 Expenses":
                         st.success(f"✅ Expense added: {format_currency(float(expense.amount))} - {expense.description}")
                         
                         # Show updated daily limit
-                        recommendation = services['recommendation'].get_daily_recommendation()
+                        recommendation = services['recommendation'].get_daily_recommendation(user_id)
                         if recommendation:
                             st.info(f"💡 Updated daily limit: {format_currency(float(recommendation.recommended_daily_limit))}")
                         
@@ -426,7 +482,7 @@ elif page == "💸 Expenses":
         
         with col2:
             # Today's expenses
-            today_expenses = services['expense'].get_today_expenses()
+            today_expenses = services['expense'].get_today_expenses(user_id)
             today_total = sum(float(exp.amount) for exp in today_expenses)
             
             st.metric("Today's Spending", format_currency(today_total))
@@ -460,6 +516,7 @@ elif page == "💸 Expenses":
         category_enum = ExpenseCategory(category_filter) if category_filter != "All" else None
         
         expenses = services['expense'].get_expenses(
+            user_id=user_id,
             start_date=start_date,
             category=category_enum,
             limit=limit
@@ -553,7 +610,7 @@ elif page == "📈 Reports":
         
         try:
             month_date = datetime.strptime(selected_month, "%Y-%m").date()
-            summary = services['recommendation'].get_monthly_summary(month_date)
+            summary = services['recommendation'].get_monthly_summary(user_id, month_date)
             
             if summary:
                 # Key metrics
@@ -658,7 +715,7 @@ elif page == "📈 Reports":
             month_date = current_date - timedelta(days=32*i)
             month_date = month_date.replace(day=1)
             
-            monthly_expenses = services['expense'].get_monthly_expenses(month_date)
+            monthly_expenses = services['expense'].get_monthly_expenses(user_id, month_date)
             total_expenses = sum(float(exp.amount) for exp in monthly_expenses)
             
             months_data.append({
@@ -700,7 +757,7 @@ elif page == "📈 Reports":
         st.subheader("🎯 Goals Analysis")
         
         # Savings progress
-        progress = services['recommendation'].get_savings_progress()
+        progress = services['recommendation'].get_savings_progress(user_id)
         
         if progress:
             col1, col2 = st.columns(2)
@@ -768,7 +825,7 @@ elif page == "⚙️ Settings":
             st.write("**Export Data**")
             if st.button("📤 Export Expenses to CSV", use_container_width=True):
                 try:
-                    expenses = services['expense'].get_expenses(limit=1000)
+                    expenses = services['expense'].get_expenses(user_id, limit=1000)
                     if expenses:
                         expense_data = []
                         for expense in expenses:
@@ -799,9 +856,9 @@ elif page == "⚙️ Settings":
             
             # Show database statistics
             try:
-                total_expenses = len(services['expense'].get_expenses(limit=10000))
-                total_income_entries = len(services['budget'].get_income_entries())
-                total_goals = len(services['budget'].get_all_savings_goals())
+                total_expenses = len(services['expense'].get_expenses(user_id, limit=10000))
+                total_income_entries = len(services['budget'].get_income_entries(user_id))
+                total_goals = len(services['budget'].get_all_savings_goals(user_id))
                 
                 st.info(f"""
                 📊 **Database Statistics:**

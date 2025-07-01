@@ -1,12 +1,12 @@
 """
-Recommendation service for smart daily spending recommendations.
+Recommendation service for generating smart budget recommendations.
+Multi-user support with data isolation.
 """
 
-from datetime import date, datetime
+from datetime import date, timedelta
 from decimal import Decimal
-from typing import Optional, Dict, List
+from typing import Optional, List, Dict
 
-from ..core.database import DatabaseManager
 from ..core.calculator import BudgetCalculator
 from ..core.models import DailyRecommendation, BudgetSummary
 from .budget_service import BudgetService
@@ -15,31 +15,35 @@ from ..utils.formatters import Formatters
 
 
 class RecommendationService:
-    """Service for generating smart spending recommendations."""
+    """Service for generating smart budget recommendations with user isolation."""
     
-    def __init__(self, db_manager: Optional[DatabaseManager] = None):
+    def __init__(self, db_manager: Optional['DatabaseManager'] = None):
         """
         Initialize recommendation service.
         
         Args:
             db_manager: Database manager instance. If None, creates a new one.
         """
-        self.db = db_manager or DatabaseManager()
-        self.budget_service = BudgetService(self.db)
-        self.expense_service = ExpenseService(self.db)
+        from ..core.database import DatabaseManager
+        db_manager = db_manager or DatabaseManager()
+        
         self.calculator = BudgetCalculator()
+        self.budget_service = BudgetService(db_manager)
+        self.expense_service = ExpenseService(db_manager)
     
     def get_daily_recommendation(
         self, 
+        user_id: int,
         target_date: date = None,
         month: date = None
     ) -> Optional[DailyRecommendation]:
         """
-        Get daily spending recommendation for achieving savings goals.
+        Get daily spending recommendation for a specific user.
         
         Args:
-            target_date: Target date to achieve savings (default: 3rd of next month)
-            month: Month to base calculation on (default: current month)
+            user_id: ID of the user
+            target_date: Target date by which to achieve savings goal (defaults to 3rd of next month)
+            month: Month to calculate for (defaults to current month)
             
         Returns:
             DailyRecommendation or None if insufficient data
@@ -48,32 +52,33 @@ class RecommendationService:
             month = date.today()
         
         # Get monthly income
-        monthly_income = self.budget_service.get_monthly_income(month)
+        monthly_income = self.budget_service.get_monthly_income(user_id, month)
         if monthly_income <= 0:
             return None  # No income data available
         
         # Get savings goal
-        savings_goal = self.budget_service.get_savings_goal(month)
+        savings_goal = self.budget_service.get_savings_goal(user_id, month)
         if not savings_goal:
             return None  # No savings goal set
         
         # Get current month expenses
-        current_month_expenses = self.expense_service.get_monthly_expenses(month)
+        current_expenses = self.expense_service.get_monthly_expenses(user_id, month)
         
-        # Calculate recommendation
         return self.calculator.calculate_daily_recommendation(
             monthly_income=monthly_income,
             savings_target=savings_goal.target_amount,
-            current_month_expenses=current_month_expenses,
-            target_date=target_date
+            current_month_expenses=current_expenses,
+            target_date=target_date,
+            current_month=month
         )
     
-    def get_monthly_summary(self, month: date = None) -> Optional[BudgetSummary]:
+    def get_monthly_summary(self, user_id: int, month: date = None) -> Optional[BudgetSummary]:
         """
-        Get comprehensive monthly budget summary.
+        Get monthly budget summary for a specific user.
         
         Args:
-            month: Month to summarize (default: current month)
+            user_id: ID of the user
+            month: Month to summarize (defaults to current month)
             
         Returns:
             BudgetSummary or None if insufficient data
@@ -83,15 +88,16 @@ class RecommendationService:
         
         # Get income entries
         income_entries = self.budget_service.get_income_entries(
+            user_id=user_id,
             start_month=month, 
             end_month=month
         )
         
         # Get expenses
-        expenses = self.expense_service.get_monthly_expenses(month)
+        expenses = self.expense_service.get_monthly_expenses(user_id, month)
         
         # Get savings goal
-        savings_goal = self.budget_service.get_savings_goal(month)
+        savings_goal = self.budget_service.get_savings_goal(user_id, month)
         
         return self.calculator.calculate_monthly_summary(
             month=month,
@@ -102,13 +108,15 @@ class RecommendationService:
     
     def analyze_spending_patterns(
         self, 
+        user_id: int,
         start_date: date = None, 
         end_date: date = None
     ) -> Dict[str, Dict[str, Decimal]]:
         """
-        Analyze spending patterns by category.
+        Analyze spending patterns by category for a specific user.
         
         Args:
+            user_id: ID of the user
             start_date: Start date for analysis (default: 30 days ago)
             end_date: End date for analysis (default: today)
             
@@ -128,6 +136,7 @@ class RecommendationService:
         
         # Get expenses for the period
         expenses = self.expense_service.get_expenses(
+            user_id=user_id,
             start_date=start_date, 
             end_date=end_date
         )
@@ -138,11 +147,12 @@ class RecommendationService:
             end_date=end_date
         )
     
-    def predict_monthly_outcome(self, month: date = None) -> Optional[Dict[str, Decimal]]:
+    def predict_monthly_outcome(self, user_id: int, month: date = None) -> Optional[Dict[str, Decimal]]:
         """
-        Predict end-of-month financial outcome.
+        Predict end-of-month financial outcome for a specific user.
         
         Args:
+            user_id: ID of the user
             month: Month to predict for (default: current month)
             
         Returns:
@@ -152,23 +162,24 @@ class RecommendationService:
             month = date.today()
         
         # Get monthly income
-        monthly_income = self.budget_service.get_monthly_income(month)
+        monthly_income = self.budget_service.get_monthly_income(user_id, month)
         if monthly_income <= 0:
             return None  # No income data available
         
         # Get current month expenses
-        current_expenses = self.expense_service.get_monthly_expenses(month)
+        current_expenses = self.expense_service.get_monthly_expenses(user_id, month)
         
         return self.calculator.predict_monthly_outcome(
             monthly_income=monthly_income,
             current_expenses=current_expenses
         )
     
-    def get_smart_alerts(self, month: date = None) -> List[Dict[str, str]]:
+    def get_smart_alerts(self, user_id: int, month: date = None) -> List[Dict[str, str]]:
         """
-        Get smart alerts about spending and budget status.
+        Get smart alerts about spending and budget status for a specific user.
         
         Args:
+            user_id: ID of the user
             month: Month to analyze (default: current month)
             
         Returns:
@@ -180,9 +191,9 @@ class RecommendationService:
         alerts = []
         
         # Get recommendation and summary
-        recommendation = self.get_daily_recommendation(month=month)
-        summary = self.get_monthly_summary(month=month)
-        prediction = self.predict_monthly_outcome(month=month)
+        recommendation = self.get_daily_recommendation(user_id=user_id, month=month)
+        summary = self.get_monthly_summary(user_id=user_id, month=month)
+        prediction = self.predict_monthly_outcome(user_id=user_id, month=month)
         
         if not recommendation or not summary:
             alerts.append({
@@ -224,6 +235,7 @@ class RecommendationService:
         today = date.today()
         if month.month == today.month and month.year == today.year:
             category_breakdown = self.expense_service.get_category_breakdown(
+                user_id=user_id,
                 start_date=month.replace(day=1),
                 end_date=today
             )
@@ -251,11 +263,12 @@ class RecommendationService:
         
         return alerts
     
-    def get_savings_progress(self, month: date = None) -> Optional[Dict[str, any]]:
+    def get_savings_progress(self, user_id: int, month: date = None) -> Optional[Dict[str, any]]:
         """
-        Get savings progress information.
+        Get savings progress information for a specific user.
         
         Args:
+            user_id: ID of the user
             month: Month to analyze (default: current month)
             
         Returns:
@@ -264,7 +277,7 @@ class RecommendationService:
         if month is None:
             month = date.today()
         
-        summary = self.get_monthly_summary(month=month)
+        summary = self.get_monthly_summary(user_id=user_id, month=month)
         if not summary:
             return None
         
