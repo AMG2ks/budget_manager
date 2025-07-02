@@ -198,7 +198,7 @@ class Expense(BaseModel):
     amount: Decimal = Field(..., gt=0, description="Expense amount")
     description: str = Field(..., min_length=1, max_length=255)
     category: ExpenseCategory = Field(..., description="Expense category")
-    expense_date: date = Field(default_factory=date.today, description="Expense date", alias="date")
+    expense_date: date = Field(..., description="Expense date")
     created_at: Optional[datetime] = None
     
     class Config:
