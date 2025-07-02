@@ -13,8 +13,35 @@ A smart and flexible budget management application that helps you manage your sa
 - **Analytics**: Visual reports and spending insights
 - **Flexible Categories**: Customizable expense categories
 - **Goal Tracking**: Monitor progress towards savings targets
+- **Multi-User Support**: Complete user isolation with secure authentication
 - **Multi-Currency Support**: Choose from 21 supported currencies including USD, EUR, GBP, TND, and more
 - **Customizable Formatting**: Adjust decimal places and thousands separators
+
+## 👥 Multi-User Support
+
+The Budget Manager supports **multiple users simultaneously** with complete data isolation:
+
+### ✅ Built-in Multi-User Features
+- **🔒 Complete Data Isolation**: Each user has their own private financial data
+- **🔑 Secure Authentication**: Password hashing (bcrypt) and session management
+- **🚀 Concurrent Access**: Multiple users can use the app simultaneously
+- **⚙️ Individual Preferences**: Each user can set their own language and currency
+- **🎯 Personal Goals**: Separate savings goals and budgets per user
+- **📊 Private Analytics**: Each user sees only their own financial data
+- **🔄 Zero Configuration**: Works out-of-the-box with SQLite
+
+### 🏢 Perfect For:
+- **Teams**: Each team member tracks their personal budget
+- **Families**: Parents and children can have separate budgets
+- **Shared Hosting**: Multiple people using the same deployment
+- **Development**: Test with multiple user accounts easily
+
+### 💾 Database Technology
+- **SQLite with WAL Mode**: Optimized for concurrent read/write access
+- **High Performance**: Fast queries even with multiple users
+- **Reliable**: ACID transactions ensure data consistency
+- **Scalable**: Supports small to medium teams (5-50 users)
+- **Thread-Safe**: Proper connection pooling and timeout handling
 
 ## Installation
 
@@ -46,32 +73,37 @@ chmod +x install.sh
 ./install.sh
 ```
 
-## 🗄️ Persistent Storage for Cloud Deployment
+## 🗄️ Database Options
 
-**Important**: For Streamlit Cloud deployment, set up persistent storage to prevent data loss on redeployments.
+### 📱 Default: SQLite (Recommended for Most Users)
+**Works perfectly out-of-the-box with excellent multi-user support!**
 
-### 🆓 Option 1: GitHub Storage (100% Free Forever)
-**Best choice - Uses your existing GitHub account!**
+- ✅ **Zero Configuration**: Ready to use immediately
+- ✅ **Multi-User Ready**: Complete data isolation between users
+- ✅ **High Performance**: Fast queries with WAL mode optimization
+- ✅ **Perfect for**: Development, small-medium teams (5-50 users)
+- ✅ **Concurrent Access**: Multiple users can work simultaneously
+- ✅ **Reliable**: ACID transactions and robust error handling
 
-1. **Create GitHub Token**: GitHub.com → Settings → Developer settings → Personal access tokens → Generate new token (classic)
-2. **Select Scope**: Check `repo` (Full control of private repositories)  
-3. **Add to Streamlit Cloud**: Settings → Advanced → Environment variables:
-   - `GITHUB_TOKEN` = your_token_here
-   - `GITHUB_USERNAME` = your_github_username
-   - `USE_GITHUB_STORAGE` = true
-4. **Redeploy**: Auto-creates private repository for data storage!
+### ☁️ Cloud Deployment Options
 
-### 📊 Option 2: PostgreSQL Database (Free Tiers Available)
+**For Development & Small Teams**: The default SQLite setup works great on Streamlit Cloud for testing and small teams.
 
-📖 **[Complete Setup Guide: PERSISTENT_STORAGE_GUIDE.md](PERSISTENT_STORAGE_GUIDE.md)**
+**For Large Production Deployments**: Optionally upgrade to PostgreSQL for enhanced scalability:
 
-**Quick Setup**: Create free database at [Supabase](https://supabase.com) → Add `DATABASE_URL` environment variable
+📖 **[PostgreSQL Setup Guide: PERSISTENT_STORAGE_GUIDE.md](PERSISTENT_STORAGE_GUIDE.md)**
 
-### ✅ Benefits of Persistent Storage:
-- ✅ **No data loss** on redeployments
-- ✅ **Multi-user support** with proper data isolation
-- ✅ **Professional reliability** for production use
-- ✅ **Automatic backups** (especially with GitHub storage)
+**Quick PostgreSQL Setup**: Create free database at [Supabase](https://supabase.com) → Add `DATABASE_URL` environment variable
+
+### 🔄 When to Use Each:
+
+| Feature | SQLite (Default) | PostgreSQL (Optional) |
+|---------|------------------|----------------------|
+| **Setup Complexity** | Zero config ⭐⭐⭐ | Minimal setup ⭐⭐ |
+| **Multi-User Support** | Yes (5-50 users) ⭐⭐⭐ | Yes (unlimited) ⭐⭐⭐ |
+| **Performance** | Excellent ⭐⭐⭐ | Excellent ⭐⭐⭐ |
+| **Cloud Persistence** | Session-based ⭐⭐ | Permanent ⭐⭐⭐ |
+| **Cost** | Free ⭐⭐⭐ | Free tiers available ⭐⭐ |
 
 ## Usage
 

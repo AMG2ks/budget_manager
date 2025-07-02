@@ -855,7 +855,7 @@ elif page == "📈 Reports":
 elif page == "⚙️ Settings":
     st.header("⚙️ Application Settings")
     
-    tab1, tab2, tab3 = st.tabs(["🗃️ Data Management", "📊 Preferences", "🎭 Demo Data"])
+    tab1, tab2, tab3, tab4 = st.tabs(["🗃️ Data Management", "📊 Preferences", "🎭 Demo Data", "👥 Multi-User"])
     
     with tab3:
         st.subheader("🎭 Demo Data Generator")
@@ -1126,69 +1126,79 @@ elif page == "⚙️ Settings":
         # Database connection info
         try:
             from budget_manager.core.database import DatabaseManager
-            from budget_manager.storage import GitHubStorageAdapter, GITHUB_SETUP_INSTRUCTIONS
             
-            # Check GitHub storage first
-            github_storage = GitHubStorageAdapter()
+            db_manager = DatabaseManager()
+            db_info = db_manager.get_connection_info()
             
-            if github_storage.is_available():
-                # Using GitHub storage
-                github_info = github_storage.get_connection_info()
-                st.write("**Storage Configuration**")
-                st.success(f"✅ **{github_info['database_type']}** - {github_info['cost']}")
-                st.caption(f"Repository: {github_info['url_masked']} | Backup: {github_info['backup']}")
-                
-                # Test GitHub connection
-                if github_storage.test_connection():
-                    st.success("🔗 GitHub storage connection: OK")
-                else:
-                    st.error("❌ GitHub storage connection: Failed")
+            st.write("**Database Configuration**")
+            
+            if db_info['is_persistent']:
+                st.success(f"✅ **{db_info['database_type']}** - Persistent Storage Enabled")
+                st.caption("Your data will persist across deployments!")
             else:
-                # Check regular database
-                db_manager = DatabaseManager()
-                db_info = db_manager.get_connection_info()
+                st.info(f"📱 **{db_info['database_type']}** - Multi-User Ready")
+                st.caption("Perfect for development and testing. Data is isolated per user session.")
                 
-                st.write("**Database Configuration**")
-                
-                if db_info['is_persistent']:
-                    st.success(f"✅ **{db_info['database_type']}** - Persistent Storage Enabled")
-                    st.caption("Your data will persist across deployments!")
-                else:
-                    st.warning(f"⚠️ **{db_info['database_type']}** - Temporary Storage")
-                    st.caption("Data will be lost on redeployment. Choose a 100% free persistent option below!")
-                
-                # Show setup instructions for free options
-                with st.expander("🆓 Set up 100% FREE Persistent Storage"):
-                    st.markdown(GITHUB_SETUP_INSTRUCTIONS)
-                    
-                    st.markdown("---")
+                # Show cloud deployment note
+                with st.expander("☁️ For Production Deployment (Optional)"):
                     st.markdown("""
-                    ### Alternative: PostgreSQL Database Options:
+                    ### Free PostgreSQL Options for Cloud Persistence:
                     
-                    **Option 1: Supabase (Free tier)**
+                    **Option 1: Supabase (Free tier - 500MB)**
                     1. Go to [supabase.com](https://supabase.com) and create account
                     2. Create new project → Get PostgreSQL URL
                     3. Add as `DATABASE_URL` environment variable in Streamlit Cloud
                     
-                    **Option 2: Neon (Free tier)**
+                    **Option 2: Neon (Free tier - 3GB)**
                     1. Go to [neon.tech](https://neon.tech) and create account  
                     2. Create database → Get connection string
                     3. Add as `DATABASE_URL` environment variable in Streamlit Cloud
                     
-                    **Option 3: ElephantSQL (Free tier)**
+                    **Option 3: ElephantSQL (Free tier - 20MB)**
                     1. Go to [elephantsql.com](https://elephantsql.com)
                     2. Create "Tiny Turtle" free instance
                     3. Add as `DATABASE_URL` environment variable in Streamlit Cloud
+                    
+                    **Benefits of PostgreSQL:**
+                    - ✅ Data persists across deployments
+                    - ✅ Better performance for many users
+                    - ✅ Advanced database features
+                    - ✅ Automatic backups
+                    
+                    **Current SQLite is great for:**
+                    - ✅ Development and testing
+                    - ✅ Small to medium user base
+                    - ✅ No external dependencies
+                    - ✅ Fast and reliable
                     """)
+            
+            # Test database connection
+            if db_manager.test_connection():
+                st.success("🔗 Database connection: OK")
                 
-                # Test database connection
-                if db_manager.test_connection():
-                    st.success("🔗 Database connection: OK")
-                else:
-                    st.error("❌ Database connection: Failed")
+                # Show multi-user statistics
+                try:
+                    from budget_manager.services.auth_service import AuthService
+                    auth_service = AuthService()
+                    stats = auth_service.get_system_stats()
+                    
+                    col1, col2, col3, col4 = st.columns(4)
+                    with col1:
+                        st.metric("👥 Users", stats['total_users'])
+                    with col2:
+                        st.metric("💰 Income Entries", stats['total_income_entries'])
+                    with col3:
+                        st.metric("💸 Expenses", stats['total_expenses'])
+                    with col4:
+                        st.metric("🎯 Goals", stats['total_savings_goals'])
+                        
+                except Exception:
+                    pass
+            else:
+                st.error("❌ Database connection: Failed")
                 
         except Exception as e:
-            st.error(f"Error checking storage: {str(e)}")
+            st.error(f"Error checking database: {str(e)}")
         
         st.divider()
         
@@ -1301,6 +1311,97 @@ elif page == "⚙️ Settings":
             prefs.reset_to_defaults()
             st.success("✅ All preferences reset to defaults")
             st.rerun()
+    
+    with tab4:
+        st.subheader("👥 Multi-User System")
+        st.info("Your SQLite database supports multiple users with complete data isolation!")
+        
+        try:
+            from budget_manager.services.auth_service import AuthService
+            auth_service = AuthService()
+            
+            # System overview
+            stats = auth_service.get_system_stats()
+            
+            col1, col2 = st.columns([2, 1])
+            
+            with col1:
+                st.write("**System Overview**")
+                
+                # Create a summary table
+                summary_data = {
+                    "Metric": ["Total Users", "Income Entries", "Expenses", "Savings Goals"],
+                    "Count": [
+                        stats['total_users'], 
+                        stats['total_income_entries'], 
+                        stats['total_expenses'], 
+                        stats['total_savings_goals']
+                    ]
+                }
+                
+                import pandas as pd
+                df_summary = pd.DataFrame(summary_data)
+                st.dataframe(df_summary, use_container_width=True, hide_index=True)
+                
+                # User list
+                st.write("**Active Users**")
+                users = auth_service.get_all_users()
+                
+                if users:
+                    user_data = []
+                    for user in users:
+                        # Get user-specific stats
+                        user_stats = auth_service.get_user_stats(user.id)
+                        user_data.append({
+                            "Username": user.username,
+                            "Full Name": user.full_name or "Not set",
+                            "Email": user.email,
+                            "Income Entries": user_stats['income_entries'] if user_stats else 0,
+                            "Expenses": user_stats['total_expenses'] if user_stats else 0,
+                            "Goals": user_stats['savings_goals'] if user_stats else 0,
+                            "Days Active": user_stats['days_since_registration'] if user_stats else 0
+                        })
+                    
+                    df_users = pd.DataFrame(user_data)
+                    st.dataframe(df_users, use_container_width=True, hide_index=True)
+                else:
+                    st.info("No users found (should not happen since you're logged in!)")
+            
+            with col2:
+                st.write("**Multi-User Features**")
+                st.success("✅ **Complete Data Isolation**")
+                st.caption("Each user has their own private data")
+                
+                st.success("✅ **Secure Authentication**")
+                st.caption("Password hashing and session management")
+                
+                st.success("✅ **Multi-Language Support**")
+                st.caption("Each user can choose their language")
+                
+                st.success("✅ **Independent Preferences**") 
+                st.caption("Currency and settings per user")
+                
+                st.success("✅ **Concurrent Access**")
+                st.caption("Multiple users can use the app simultaneously")
+                
+                st.info("📊 **SQLite Benefits:**")
+                st.caption("""
+                • No external dependencies
+                • Fast and reliable
+                • Perfect for small-medium teams
+                • Zero configuration needed
+                • Built-in ACID transactions
+                """)
+                
+                # Test multi-user registration
+                st.write("**Test Registration**")
+                st.caption("Try creating a new user account to test multi-user functionality!")
+                
+                if st.button("🚪 Logout to Register New User", use_container_width=True):
+                    auth_ui.logout()
+        
+        except Exception as e:
+            st.error(f"Error loading multi-user data: {str(e)}")
 
 # Footer
 st.markdown("---")

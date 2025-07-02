@@ -253,9 +253,40 @@ class AuthService:
                 return None
             
             return {
-                'total_income_entries': len(user.income_entries),
+                'income_entries': len(user.income_entries),
                 'total_expenses': len(user.expenses),
-                'total_savings_goals': len(user.savings_goals),
-                'account_age_days': (datetime.utcnow() - user.created_at).days,
+                'savings_goals': len(user.savings_goals),
+                'days_since_registration': (datetime.utcnow() - user.created_at).days,
                 'last_login': user.last_login
+            }
+    
+    def get_all_users(self) -> list[UserProfile]:
+        """
+        Get all active users.
+        
+        Returns:
+            List of all active user profiles
+        """
+        with self.db_manager.get_session() as session:
+            users = session.query(User).filter(User.is_active == True).all()
+            return [UserProfile.from_orm(user) for user in users]
+    
+    def get_system_stats(self) -> Dict[str, Any]:
+        """
+        Get system-wide statistics.
+        
+        Returns:
+            Dictionary with system statistics
+        """
+        with self.db_manager.get_session() as session:
+            total_users = session.query(User).filter(User.is_active == True).count()
+            total_income_entries = session.query(User).join(User.income_entries).count()
+            total_expenses = session.query(User).join(User.expenses).count()
+            total_savings_goals = session.query(User).join(User.savings_goals).count()
+            
+            return {
+                'total_users': total_users,
+                'total_income_entries': total_income_entries,
+                'total_expenses': total_expenses,
+                'total_savings_goals': total_savings_goals
             } 

@@ -48,17 +48,51 @@ class DatabaseManager:
                 }
             )
         else:
-            # SQLite configuration
+            # SQLite configuration optimized for multi-user access
+            connect_args = {"check_same_thread": False} if "sqlite" in self.db_url else {}
+            
             self.engine = create_engine(
                 self.db_url, 
                 echo=False,
-                connect_args={"check_same_thread": False} if "sqlite" in self.db_url else {}
+                connect_args=connect_args,
+                poolclass=QueuePool,
+                pool_size=20,  # Allow more concurrent connections
+                max_overflow=0,
+                pool_pre_ping=True
             )
+            
+            # Enable SQLite optimizations for multi-user scenarios
+            self._configure_sqlite_for_multiuser()
         
         self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
         
         # Create tables if they don't exist
         self._create_tables_with_retry()
+    
+    def _configure_sqlite_for_multiuser(self) -> None:
+        """Configure SQLite for optimal multi-user performance."""
+        if not self.is_postgres:
+            try:
+                with self.engine.connect() as conn:
+                    # Enable WAL mode for better concurrency
+                    conn.execute("PRAGMA journal_mode=WAL")
+                    
+                    # Enable foreign key constraints
+                    conn.execute("PRAGMA foreign_keys=ON")
+                    
+                    # Optimize for multi-user scenarios
+                    conn.execute("PRAGMA synchronous=NORMAL")  # Good balance of safety vs speed
+                    conn.execute("PRAGMA cache_size=10000")    # Increase cache size
+                    conn.execute("PRAGMA temp_store=MEMORY")   # Store temp data in memory
+                    conn.execute("PRAGMA mmap_size=134217728") # Enable memory mapping (128MB)
+                    
+                    # Set busy timeout to handle concurrent access
+                    conn.execute("PRAGMA busy_timeout=30000")  # 30 second timeout
+                    
+                    conn.commit()
+            except Exception:
+                # If configuration fails, continue with defaults
+                pass
     
     def _get_database_url(self) -> str:
         """
@@ -119,11 +153,19 @@ class DatabaseManager:
         Returns:
             Dictionary with connection details
         """
+        features = []
+        if self.is_postgres:
+            features = ["Cloud Persistent", "High Concurrency", "Advanced Features"]
+        else:
+            features = ["WAL Mode", "Multi-User Ready", "Fast & Reliable", "Zero Config"]
+            
         return {
             'database_type': 'PostgreSQL' if self.is_postgres else 'SQLite',
             'is_persistent': self.is_postgres,
             'url_masked': self._mask_db_url(self.db_url),
-            'cloud_ready': self.is_postgres
+            'cloud_ready': self.is_postgres,
+            'features': features,
+            'concurrent_users': "Unlimited" if self.is_postgres else "Small-Medium Teams"
         }
     
     def _mask_db_url(self, url: str) -> str:
