@@ -5,5 +5,6 @@
   "theme": "default",
   "decimal_places": 2,
   "show_cents": true,
-  "group_thousands": true
+  "group_thousands": true,
+  "language": "en"
 }

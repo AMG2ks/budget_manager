@@ -1123,6 +1123,75 @@ elif page == "⚙️ Settings":
     with tab2:
         st.subheader("📊 Application Preferences")
         
+        # Database connection info
+        try:
+            from budget_manager.core.database import DatabaseManager
+            from budget_manager.storage import GitHubStorageAdapter, GITHUB_SETUP_INSTRUCTIONS
+            
+            # Check GitHub storage first
+            github_storage = GitHubStorageAdapter()
+            
+            if github_storage.is_available():
+                # Using GitHub storage
+                github_info = github_storage.get_connection_info()
+                st.write("**Storage Configuration**")
+                st.success(f"✅ **{github_info['database_type']}** - {github_info['cost']}")
+                st.caption(f"Repository: {github_info['url_masked']} | Backup: {github_info['backup']}")
+                
+                # Test GitHub connection
+                if github_storage.test_connection():
+                    st.success("🔗 GitHub storage connection: OK")
+                else:
+                    st.error("❌ GitHub storage connection: Failed")
+            else:
+                # Check regular database
+                db_manager = DatabaseManager()
+                db_info = db_manager.get_connection_info()
+                
+                st.write("**Database Configuration**")
+                
+                if db_info['is_persistent']:
+                    st.success(f"✅ **{db_info['database_type']}** - Persistent Storage Enabled")
+                    st.caption("Your data will persist across deployments!")
+                else:
+                    st.warning(f"⚠️ **{db_info['database_type']}** - Temporary Storage")
+                    st.caption("Data will be lost on redeployment. Choose a 100% free persistent option below!")
+                
+                # Show setup instructions for free options
+                with st.expander("🆓 Set up 100% FREE Persistent Storage"):
+                    st.markdown(GITHUB_SETUP_INSTRUCTIONS)
+                    
+                    st.markdown("---")
+                    st.markdown("""
+                    ### Alternative: PostgreSQL Database Options:
+                    
+                    **Option 1: Supabase (Free tier)**
+                    1. Go to [supabase.com](https://supabase.com) and create account
+                    2. Create new project → Get PostgreSQL URL
+                    3. Add as `DATABASE_URL` environment variable in Streamlit Cloud
+                    
+                    **Option 2: Neon (Free tier)**
+                    1. Go to [neon.tech](https://neon.tech) and create account  
+                    2. Create database → Get connection string
+                    3. Add as `DATABASE_URL` environment variable in Streamlit Cloud
+                    
+                    **Option 3: ElephantSQL (Free tier)**
+                    1. Go to [elephantsql.com](https://elephantsql.com)
+                    2. Create "Tiny Turtle" free instance
+                    3. Add as `DATABASE_URL` environment variable in Streamlit Cloud
+                    """)
+                
+                # Test database connection
+                if db_manager.test_connection():
+                    st.success("🔗 Database connection: OK")
+                else:
+                    st.error("❌ Database connection: Failed")
+                
+        except Exception as e:
+            st.error(f"Error checking storage: {str(e)}")
+        
+        st.divider()
+        
         # Get current preferences
         prefs = get_user_preferences()
         

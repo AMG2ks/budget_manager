@@ -46,6 +46,33 @@ chmod +x install.sh
 ./install.sh
 ```
 
+## 🗄️ Persistent Storage for Cloud Deployment
+
+**Important**: For Streamlit Cloud deployment, set up persistent storage to prevent data loss on redeployments.
+
+### 🆓 Option 1: GitHub Storage (100% Free Forever)
+**Best choice - Uses your existing GitHub account!**
+
+1. **Create GitHub Token**: GitHub.com → Settings → Developer settings → Personal access tokens → Generate new token (classic)
+2. **Select Scope**: Check `repo` (Full control of private repositories)  
+3. **Add to Streamlit Cloud**: Settings → Advanced → Environment variables:
+   - `GITHUB_TOKEN` = your_token_here
+   - `GITHUB_USERNAME` = your_github_username
+   - `USE_GITHUB_STORAGE` = true
+4. **Redeploy**: Auto-creates private repository for data storage!
+
+### 📊 Option 2: PostgreSQL Database (Free Tiers Available)
+
+📖 **[Complete Setup Guide: PERSISTENT_STORAGE_GUIDE.md](PERSISTENT_STORAGE_GUIDE.md)**
+
+**Quick Setup**: Create free database at [Supabase](https://supabase.com) → Add `DATABASE_URL` environment variable
+
+### ✅ Benefits of Persistent Storage:
+- ✅ **No data loss** on redeployments
+- ✅ **Multi-user support** with proper data isolation
+- ✅ **Professional reliability** for production use
+- ✅ **Automatic backups** (especially with GitHub storage)
+
 ## Usage
 
 ### Choose Your Interface

@@ -1,15 +1,18 @@
 """
 Database management for the budget management application.
+Enhanced with PostgreSQL support for persistent cloud storage.
 """
 
 import os
 from pathlib import Path
 from typing import Optional, List, Type, TypeVar
 from contextlib import contextmanager
+import time
 
 from sqlalchemy import create_engine, and_
 from sqlalchemy.orm import sessionmaker, Session
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError, OperationalError
+from sqlalchemy.pool import QueuePool
 
 from .models import Base, IncomeEntryDB, ExpenseDB, SavingsGoalDB, User
 
@@ -17,47 +20,136 @@ T = TypeVar('T')
 
 
 class DatabaseManager:
-    """Manages database connections and operations."""
+    """Manages database connections and operations with PostgreSQL and SQLite support."""
     
-    def __init__(self, db_path: Optional[str] = None):
+    def __init__(self, db_url: Optional[str] = None):
         """
-        Initialize database manager.
+        Initialize database manager with support for PostgreSQL and SQLite.
         
         Args:
-            db_path: Custom database path. If None, uses default location.
+            db_url: Custom database URL. If None, auto-detects from environment.
         """
-        if db_path is None:
-            # Try to use user's home directory, fall back to current directory for deployment
-            try:
-                import os
-                if os.environ.get('STREAMLIT_CLOUD_DEPLOYMENT'):
-                    # For Streamlit Cloud deployment, use current directory
-                    data_dir = Path("./data")
-                else:
-                    # For local development, use home directory
-                    data_dir = Path.home() / ".budget_manager"
-                
-                data_dir.mkdir(exist_ok=True)
-                db_path = str(data_dir / "budget.db")
-            except (PermissionError, OSError):
-                # Fallback to current directory if home directory isn't accessible
-                data_dir = Path("./data")
-                data_dir.mkdir(exist_ok=True)
-                db_path = str(data_dir / "budget.db")
+        self.db_url = db_url or self._get_database_url()
+        self.is_postgres = self.db_url.startswith('postgresql')
         
-        self.db_path = db_path
-        self.engine = create_engine(f"sqlite:///{db_path}", echo=False)
+        # Create engine with appropriate configuration
+        if self.is_postgres:
+            self.engine = create_engine(
+                self.db_url,
+                echo=False,
+                poolclass=QueuePool,
+                pool_size=5,
+                max_overflow=10,
+                pool_pre_ping=True,
+                pool_recycle=300,
+                connect_args={
+                    "connect_timeout": 10,
+                    "application_name": "budget_manager"
+                }
+            )
+        else:
+            # SQLite configuration
+            self.engine = create_engine(
+                self.db_url, 
+                echo=False,
+                connect_args={"check_same_thread": False} if "sqlite" in self.db_url else {}
+            )
+        
         self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
         
         # Create tables if they don't exist
-        self.create_tables()
+        self._create_tables_with_retry()
     
-    def create_tables(self) -> None:
-        """Create all database tables."""
+    def _get_database_url(self) -> str:
+        """
+        Get database URL from environment or default to SQLite.
+        
+        Returns:
+            Database URL string
+        """
+        # Check for PostgreSQL URL first (for cloud deployment)
+        database_url = os.environ.get('DATABASE_URL')
+        if database_url:
+            # Fix Heroku/Render PostgreSQL URL format if needed
+            if database_url.startswith('postgres://'):
+                database_url = database_url.replace('postgres://', 'postgresql://', 1)
+            return database_url
+        
+        # Fall back to SQLite for local development
+        return self._get_sqlite_url()
+    
+    def _get_sqlite_url(self) -> str:
+        """Get SQLite database URL based on environment."""
         try:
-            Base.metadata.create_all(bind=self.engine)
-        except SQLAlchemyError as e:
-            raise DatabaseError(f"Failed to create database tables: {e}")
+            if os.environ.get('STREAMLIT_CLOUD_DEPLOYMENT'):
+                # For Streamlit Cloud deployment, use current directory
+                data_dir = Path("./data")
+            else:
+                # For local development, use home directory
+                data_dir = Path.home() / ".budget_manager"
+            
+            data_dir.mkdir(exist_ok=True)
+            db_path = data_dir / "budget.db"
+            return f"sqlite:///{db_path}"
+        except (PermissionError, OSError):
+            # Fallback to current directory if home directory isn't accessible
+            data_dir = Path("./data")
+            data_dir.mkdir(exist_ok=True)
+            db_path = data_dir / "budget.db"
+            return f"sqlite:///{db_path}"
+    
+    def _create_tables_with_retry(self, max_retries: int = 3) -> None:
+        """Create database tables with retry logic for cloud databases."""
+        for attempt in range(max_retries):
+            try:
+                Base.metadata.create_all(bind=self.engine)
+                return
+            except OperationalError as e:
+                if attempt < max_retries - 1 and self.is_postgres:
+                    time.sleep(2 ** attempt)  # Exponential backoff
+                    continue
+                raise DatabaseError(f"Failed to create database tables after {max_retries} attempts: {e}")
+            except SQLAlchemyError as e:
+                raise DatabaseError(f"Failed to create database tables: {e}")
+    
+    def get_connection_info(self) -> dict:
+        """
+        Get information about the current database connection.
+        
+        Returns:
+            Dictionary with connection details
+        """
+        return {
+            'database_type': 'PostgreSQL' if self.is_postgres else 'SQLite',
+            'is_persistent': self.is_postgres,
+            'url_masked': self._mask_db_url(self.db_url),
+            'cloud_ready': self.is_postgres
+        }
+    
+    def _mask_db_url(self, url: str) -> str:
+        """Mask sensitive parts of database URL for logging."""
+        if '://' not in url:
+            return url
+        
+        protocol, rest = url.split('://', 1)
+        if '@' in rest:
+            credentials, host_part = rest.split('@', 1)
+            return f"{protocol}://***:***@{host_part}"
+        return f"{protocol}://{rest}"
+    
+    def test_connection(self) -> bool:
+        """
+        Test database connection.
+        
+        Returns:
+            True if connection successful, False otherwise
+        """
+        try:
+            with self.engine.connect() as conn:
+                conn.execute("SELECT 1")
+            return True
+        except Exception:
+            return False
     
     @contextmanager
     def get_session(self):
