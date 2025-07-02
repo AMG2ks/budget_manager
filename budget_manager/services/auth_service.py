@@ -181,6 +181,37 @@ class AuthService:
             
             return UserProfile.from_orm(user)
     
+    def reset_password(self, username: str, email: str, new_password: str) -> bool:
+        """
+        Reset user password using username and email verification.
+        
+        Args:
+            username: Username
+            email: Email for verification
+            new_password: New password
+            
+        Returns:
+            True if password reset successfully
+            
+        Raises:
+            AuthenticationError: If username/email combination is invalid
+        """
+        with self.db_manager.get_session() as session:
+            user = session.query(User).filter(
+                User.username == username,
+                User.email == email,
+                User.is_active == True
+            ).first()
+            
+            if not user:
+                raise AuthenticationError("Invalid username or email combination")
+            
+            # Set new password
+            user.set_password(new_password)
+            session.commit()
+            
+            return True
+
     def change_password(self, user_id: int, current_password: str, new_password: str) -> bool:
         """
         Change user password.

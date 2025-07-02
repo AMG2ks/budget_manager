@@ -146,15 +146,17 @@ class AuthUI:
         with col2:
             auth_tab = st.radio(
                 t("choose_option"),
-                [t("login"), t("register")],
+                [t("login"), t("register"), "🔄 Reset Password"],
                 key="auth_tab",
                 horizontal=True
             )
         
         if auth_tab == t("login"):
             return self._render_login_form()
-        else:
+        elif auth_tab == t("register"):
             return self._render_register_form()
+        else:
+            return self._render_reset_password_form()
     
     def _render_login_form(self) -> bool:
         """Render login form."""
@@ -197,6 +199,15 @@ class AuthUI:
                         st.error(t("login_failed", str(e)))
                     except Exception as e:
                         st.error(t("error_occurred", str(e)))
+            
+            # Forgot password link (outside form)
+            st.markdown("---")
+            col1, col2, col3 = st.columns([1, 1, 1])
+            with col2:
+                if st.button("🔄 Forgot Password?", use_container_width=True, type="secondary"):
+                    # Switch to reset password tab
+                    st.session_state.auth_tab = "🔄 Reset Password"
+                    st.rerun()
         
         return False
     
@@ -284,6 +295,111 @@ class AuthUI:
                         st.error(t("registration_failed", str(e)))
                     except Exception as e:
                         st.error(t("error_occurred", str(e)))
+        
+        return False
+    
+    def _render_reset_password_form(self) -> bool:
+        """Render password reset form."""
+        with st.container():
+            st.markdown(f"### 🔄 Reset Password")
+            st.info("💡 Enter your username and email to reset your password.")
+            
+            with st.form("reset_password_form"):
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    username = st.text_input(
+                        "Username *",
+                        placeholder="Enter your username",
+                        help="The username you use to login"
+                    )
+                    email = st.text_input(
+                        "Email *",
+                        placeholder="Enter your email address",
+                        help="Email associated with your account"
+                    )
+                
+                with col2:
+                    new_password = st.text_input(
+                        "New Password *",
+                        type="password",
+                        placeholder="Enter new password",
+                        help="Choose a strong password (minimum 6 characters)"
+                    )
+                    confirm_password = st.text_input(
+                        "Confirm New Password *",
+                        type="password",
+                        placeholder="Confirm your new password"
+                    )
+                
+                col1, col2, col3 = st.columns([1, 1, 1])
+                with col2:
+                    reset_button = st.form_submit_button("🔄 Reset Password", use_container_width=True)
+                
+                if reset_button:
+                    # Validation
+                    errors = []
+                    
+                    if not username or not email or not new_password or not confirm_password:
+                        errors.append("Please fill in all required fields.")
+                    
+                    if new_password != confirm_password:
+                        errors.append("New passwords do not match.")
+                    
+                    if len(new_password) < 6:
+                        errors.append("Password must be at least 6 characters long.")
+                    
+                    if "@" not in email or "." not in email:
+                        errors.append("Please enter a valid email address.")
+                    
+                    if errors:
+                        for error in errors:
+                            st.error(error)
+                        return False
+                    
+                    try:
+                        # Reset password
+                        success = self.auth_service.reset_password(username, email, new_password)
+                        
+                        if success:
+                            st.success("✅ Password reset successfully!")
+                            st.info("🔐 You can now login with your new password.")
+                            
+                            # Auto-switch to login tab after short delay
+                            st.balloons()
+                            
+                            # Clear form and switch to login
+                            if st.button("🔐 Go to Login", use_container_width=True):
+                                st.session_state.auth_tab = 0  # Switch to login tab
+                                st.rerun()
+                        
+                    except AuthenticationError as e:
+                        if "Invalid username or email" in str(e):
+                            st.error("❌ Username and email combination not found. Please check your credentials.")
+                        else:
+                            st.error(f"❌ Password reset failed: {str(e)}")
+                    except Exception as e:
+                        st.error(f"❌ An error occurred: {str(e)}")
+            
+            # Help section
+            with st.expander("❓ Need Help?"):
+                st.markdown("""
+                **Password Reset Process:**
+                1. Enter your exact username (case-sensitive)
+                2. Enter the email address associated with your account
+                3. Choose a new secure password
+                4. Confirm your new password
+                5. Click "Reset Password"
+                
+                **Troubleshooting:**
+                - Make sure your username is spelled correctly
+                - Use the exact email address from registration
+                - Choose a password with at least 6 characters
+                - Contact support if you still have issues
+                
+                **Security Note:**
+                For security reasons, we verify both username and email before allowing password reset.
+                """)
         
         return False
     
