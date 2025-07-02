@@ -11,7 +11,7 @@ from decimal import Decimal
 from budget_manager.services.auth_service import AuthService, AuthenticationError
 from budget_manager.services.expense_service import ExpenseService
 from budget_manager.services.budget_service import BudgetService
-from budget_manager.core.models import UserCreate, IncomeEntryCreate, ExpenseCreate, SavingsGoalCreate
+from budget_manager.core.models import UserCreate, BudgetEntry, Expense, SavingsGoal
 
 
 def create_demo_users():
@@ -110,39 +110,36 @@ def create_demo_users():
             print(f"✅ Created user: {user_profile.full_name} (@{user_profile.username})")
             
             # Add sample financial data for this user
-            budget_service = BudgetService(user_id=user_profile.id)
-            expense_service = ExpenseService(user_id=user_profile.id)
+            budget_service = BudgetService()
+            expense_service = ExpenseService()
             
             # Add monthly income
-            income_entry = IncomeEntryCreate(
+            budget_service.add_income(
+                user_id=user_profile.id,
                 amount=Decimal(str(user_data["income"])),
-                source="Monthly Salary",
-                month=datetime.now().month,
-                year=datetime.now().year,
+                month=datetime.now().date().replace(day=1),
                 description="Demo monthly salary"
             )
-            budget_service.add_income_entry(income_entry)
             
             # Add savings goal  
-            savings_goal = SavingsGoalCreate(
+            budget_service.set_savings_goal(
+                user_id=user_profile.id,
                 target_amount=Decimal(str(user_data["savings_goal"])),
-                target_month=datetime.now().month,
-                target_year=datetime.now().year,
+                month=datetime.now().date().replace(day=1),
                 description="Monthly savings target"
             )
-            budget_service.add_savings_goal(savings_goal)
             
             # Add sample expenses over the last few days
             base_date = datetime.now() - timedelta(days=5)
             for i, (amount, desc, category) in enumerate(user_data["expenses"]):
                 expense_date = base_date + timedelta(days=i % 6)
-                expense = ExpenseCreate(
+                expense_service.add_expense(
+                    user_id=user_profile.id,
                     amount=Decimal(str(amount)),
                     description=desc,
                     category=category,
-                    date=expense_date
+                    expense_date=expense_date.date()
                 )
-                expense_service.add_expense(expense)
             
             print(f"   💰 Added income: ${user_data['income']:,.2f}")
             print(f"   🎯 Added savings goal: ${user_data['savings_goal']:,.2f}")
