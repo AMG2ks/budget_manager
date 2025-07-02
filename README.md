@@ -105,6 +105,30 @@ chmod +x install.sh
 | **Cloud Persistence** | Session-based ⭐⭐ | Permanent ⭐⭐⭐ |
 | **Cost** | Free ⭐⭐⭐ | Free tiers available ⭐⭐ |
 
+## 🗄️ Automatic Backup System
+
+**Protect your data from deployment losses with our automated backup system!**
+
+### ✅ Zero Data Loss Protection
+- **🔄 Auto-Restore**: Automatically restores data after Streamlit Cloud redeployments
+- **📦 Pre-commit Backups**: Creates backup before every Git commit
+- **🤖 GitHub Actions**: Automated deployment backups
+- **💾 Manual Control**: Create and restore backups through web interface
+- **🔍 Status Monitoring**: Real-time backup status and health checks
+
+### 🚀 How It Works
+1. **Development**: Pre-commit hook creates backup before each commit
+2. **Deployment**: GitHub Actions creates deployment backup when pushed
+3. **Recovery**: App automatically detects empty database and restores from backup
+4. **Manual Control**: Use Settings → Data Management for manual operations
+
+### 📋 Quick Setup
+1. **No Setup Required**: Works automatically with the app
+2. **First Backup**: Create one through Settings → Data Management & Backup
+3. **Protection Active**: Your data is now protected from deployment losses
+
+📖 **[Complete Backup Guide: BACKUP_DEPLOYMENT_GUIDE.md](BACKUP_DEPLOYMENT_GUIDE.md)**
+
 ## Usage
 
 ### Choose Your Interface

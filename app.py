@@ -29,6 +29,15 @@ if not os.environ.get('STREAMLIT_CLOUD_DEPLOYMENT'):
         os.path.exists('/app')):  # Common cloud deployment paths
         os.environ['STREAMLIT_CLOUD_DEPLOYMENT'] = 'true'
 
+# Auto-restore backup on startup if needed (for Streamlit Cloud deployments)
+try:
+    from backup_system import BackupRestoreSystem
+    backup_system = BackupRestoreSystem()
+    backup_system.auto_restore_on_startup()
+except Exception as e:
+    # Don't fail the app if backup system has issues
+    print(f"⚠️ Backup system issue: {e}")
+
 # Import our budget manager services
 from budget_manager.services.budget_service import BudgetService
 from budget_manager.services.expense_service import ExpenseService
@@ -983,12 +992,92 @@ elif page == "⚙️ Settings":
                     st.error(f"❌ Error clearing data: {str(e)}")
     
     with tab1:
-        st.subheader("🗃️ Data Management")
+        st.subheader("🗃️ Data Management & Backup")
         
+        # Backup Section
+        st.markdown("### 💾 Backup & Restore System")
+        st.info("📋 Protect your data from being lost during deployments by creating backups stored in the repository.")
+        
+        try:
+            from backup_system import BackupRestoreSystem
+            backup_system = BackupRestoreSystem()
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.write("**📤 Create Backup**")
+                custom_filename = st.text_input("Backup filename (optional)", placeholder="my_backup.json", key="backup_filename")
+                
+                if st.button("🗄️ Create Backup", type="primary", use_container_width=True):
+                    try:
+                        filename = custom_filename if custom_filename else None
+                        backup_path = backup_system.create_backup(filename)
+                        st.success(f"✅ Backup created successfully!")
+                        st.info(f"📁 Backup saved to: {backup_path}")
+                    except Exception as e:
+                        st.error(f"❌ Error creating backup: {str(e)}")
+                
+                # Show backup info
+                try:
+                    backup_info = backup_system.get_backup_info()
+                    if backup_info["latest_backup_exists"]:
+                        st.success("✅ Latest backup available for auto-restore")
+                    else:
+                        st.warning("⚠️ No backup available - create one for protection")
+                except Exception:
+                    pass
+            
+            with col2:
+                st.write("**📥 Restore Backup**")
+                
+                # List available backups
+                try:
+                    backup_info = backup_system.get_backup_info()
+                    if backup_info["available_backups"]:
+                        backup_options = ["Latest backup"] + [b["filename"] for b in backup_info["available_backups"]]
+                        selected_backup = st.selectbox("Select backup to restore", backup_options, key="restore_backup")
+                        
+                        st.warning("⚠️ This will overwrite existing data! Make sure to create a backup first.")
+                        
+                        if st.button("🔄 Restore Backup", type="secondary", use_container_width=True):
+                            try:
+                                backup_file = None if selected_backup == "Latest backup" else selected_backup
+                                success = backup_system.restore_from_backup(backup_file)
+                                if success:
+                                    st.success("✅ Backup restored successfully!")
+                                    st.info("🔄 Please refresh the page to see restored data.")
+                                else:
+                                    st.error("❌ Failed to restore backup")
+                            except Exception as e:
+                                st.error(f"❌ Error restoring backup: {str(e)}")
+                    else:
+                        st.info("📂 No backups available")
+                except Exception as e:
+                    st.warning(f"⚠️ Cannot load backup list: {str(e)}")
+            
+            # Auto-restore status
+            st.markdown("### 🔄 Auto-Restore Status")
+            try:
+                should_restore = backup_system.should_restore_on_startup()
+                if should_restore:
+                    st.warning("⚠️ Database appears empty - auto-restore will activate on next deployment")
+                else:
+                    st.success("✅ Database has sufficient data - auto-restore not needed")
+            except Exception:
+                st.info("ℹ️ Cannot check auto-restore status")
+                
+        except ImportError:
+            st.error("❌ Backup system not available")
+        except Exception as e:
+            st.error(f"❌ Backup system error: {str(e)}")
+        
+        st.markdown("---")
+        
+        # Export Section
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            st.write("**Export Data**")
+            st.write("**📤 Export Data**")
             if st.button("📤 Export Expenses to CSV", use_container_width=True):
                 try:
                     expenses = services['expense'].get_expenses(user_id, limit=1000)
@@ -1018,7 +1107,7 @@ elif page == "⚙️ Settings":
                     st.error(f"Error exporting data: {str(e)}")
         
         with col2:
-            st.write("**Database Info**")
+            st.write("**📊 Database Info**")
             
             # Show database statistics
             try:
@@ -1037,7 +1126,7 @@ elif page == "⚙️ Settings":
                 st.error(f"Error loading database info: {str(e)}")
         
         with col3:
-            st.write("**Reset Database**")
+            st.write("**🔄 Reset Database**")
             
             # Warning message
             st.warning("""

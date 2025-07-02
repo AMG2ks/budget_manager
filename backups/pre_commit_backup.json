@@ -1,0 +1,385 @@
+{
+  "metadata": {
+    "backup_date": "2025-07-02T12:52:06.009883",
+    "version": "1.0",
+    "database_type": "SQLite"
+  },
+  "data": {
+    "users": [
+      {
+        "id": 1,
+        "username": "test_reset",
+        "email": "test@reset.com",
+        "full_name": "Test User",
+        "created_at": "2025-07-01 13:27:12.656298",
+        "last_login": null,
+        "is_active": 1
+      },
+      {
+        "id": 2,
+        "username": "alice_test",
+        "email": "alice@test.com",
+        "full_name": "Alice Test",
+        "created_at": "2025-07-01 13:27:23.361486",
+        "last_login": null,
+        "is_active": 1
+      },
+      {
+        "id": 3,
+        "username": "bob_test",
+        "email": "bob@test.com",
+        "full_name": "Bob Test",
+        "created_at": "2025-07-01 13:27:23.375653",
+        "last_login": null,
+        "is_active": 1
+      },
+      {
+        "id": 4,
+        "username": "aziz",
+        "email": "gabsiaziz37@gmail.com",
+        "full_name": "aziz_guebsi",
+        "created_at": "2025-07-01 14:31:21.946567",
+        "last_login": "2025-07-01 14:31:45.251960",
+        "is_active": 1
+      },
+      {
+        "id": 5,
+        "username": "alice_smith",
+        "email": "alice@example.com",
+        "full_name": "Alice Smith",
+        "created_at": "2025-07-02 11:22:33.150032",
+        "last_login": null,
+        "is_active": 1
+      },
+      {
+        "id": 6,
+        "username": "bob_johnson",
+        "email": "bob@example.com",
+        "full_name": "Bob Johnson",
+        "created_at": "2025-07-02 11:22:33.275330",
+        "last_login": null,
+        "is_active": 1
+      },
+      {
+        "id": 7,
+        "username": "carol_davis",
+        "email": "carol@example.com",
+        "full_name": "Carol Davis",
+        "created_at": "2025-07-02 11:22:33.389726",
+        "last_login": null,
+        "is_active": 1
+      },
+      {
+        "id": 8,
+        "username": "david_wilson",
+        "email": "david@example.com",
+        "full_name": "David Wilson",
+        "created_at": "2025-07-02 11:22:33.502450",
+        "last_login": null,
+        "is_active": 1
+      },
+      {
+        "id": 9,
+        "username": "default_user",
+        "email": "default@budgetmanager.local",
+        "full_name": "Default User (Migration)",
+        "created_at": "2025-07-02 11:26:23.871469",
+        "last_login": null,
+        "is_active": 1
+      }
+    ],
+    "income_entries": [
+      {
+        "id": 1,
+        "user_id": 2,
+        "amount": 5000,
+        "month": "2025-07-01",
+        "description": "Alice's salary",
+        "created_at": "2025-07-01 13:27:23.388823"
+      },
+      {
+        "id": 2,
+        "user_id": 3,
+        "amount": 4500,
+        "month": "2025-07-01",
+        "description": "Bob's salary",
+        "created_at": "2025-07-01 13:27:23.402770"
+      },
+      {
+        "id": 3,
+        "user_id": 5,
+        "amount": 5000,
+        "month": "2025-07-01",
+        "description": "Demo monthly salary",
+        "created_at": "2025-07-02 11:22:33.172931"
+      },
+      {
+        "id": 4,
+        "user_id": 6,
+        "amount": 4200,
+        "month": "2025-07-01",
+        "description": "Demo monthly salary",
+        "created_at": "2025-07-02 11:22:33.297560"
+      },
+      {
+        "id": 5,
+        "user_id": 7,
+        "amount": 6000,
+        "month": "2025-07-01",
+        "description": "Demo monthly salary",
+        "created_at": "2025-07-02 11:22:33.407472"
+      },
+      {
+        "id": 6,
+        "user_id": 8,
+        "amount": 3800,
+        "month": "2025-07-01",
+        "description": "Demo monthly salary",
+        "created_at": "2025-07-02 11:22:33.531971"
+      }
+    ],
+    "expenses": [
+      {
+        "id": 1,
+        "user_id": 2,
+        "amount": 50,
+        "description": "Alice's lunch",
+        "category": "FOOD",
+        "expense_date": "2025-07-01",
+        "created_at": "2025-07-01 13:27:23.412797"
+      },
+      {
+        "id": 2,
+        "user_id": 3,
+        "amount": 75,
+        "description": "Bob's gas",
+        "category": "TRANSPORTATION",
+        "expense_date": "2025-07-01",
+        "created_at": "2025-07-01 13:27:23.423669"
+      },
+      {
+        "id": 3,
+        "user_id": 5,
+        "amount": 50,
+        "description": "Groceries",
+        "category": "FOOD",
+        "expense_date": "2025-06-27",
+        "created_at": "2025-07-02 11:22:33.209195"
+      },
+      {
+        "id": 4,
+        "user_id": 5,
+        "amount": 25,
+        "description": "Lunch",
+        "category": "FOOD",
+        "expense_date": "2025-06-28",
+        "created_at": "2025-07-02 11:22:33.223730"
+      },
+      {
+        "id": 5,
+        "user_id": 5,
+        "amount": 15,
+        "description": "Coffee",
+        "category": "FOOD",
+        "expense_date": "2025-06-29",
+        "created_at": "2025-07-02 11:22:33.238618"
+      },
+      {
+        "id": 6,
+        "user_id": 5,
+        "amount": 100,
+        "description": "Utilities",
+        "category": "UTILITIES",
+        "expense_date": "2025-06-30",
+        "created_at": "2025-07-02 11:22:33.251001"
+      },
+      {
+        "id": 7,
+        "user_id": 5,
+        "amount": 30,
+        "description": "Gas",
+        "category": "TRANSPORTATION",
+        "expense_date": "2025-07-01",
+        "created_at": "2025-07-02 11:22:33.261014"
+      },
+      {
+        "id": 8,
+        "user_id": 6,
+        "amount": 35,
+        "description": "Dinner",
+        "category": "FOOD",
+        "expense_date": "2025-06-27",
+        "created_at": "2025-07-02 11:22:33.332273"
+      },
+      {
+        "id": 9,
+        "user_id": 6,
+        "amount": 20,
+        "description": "Snacks",
+        "category": "FOOD",
+        "expense_date": "2025-06-28",
+        "created_at": "2025-07-02 11:22:33.346440"
+      },
+      {
+        "id": 10,
+        "user_id": 6,
+        "amount": 80,
+        "description": "Internet",
+        "category": "UTILITIES",
+        "expense_date": "2025-06-29",
+        "created_at": "2025-07-02 11:22:33.356622"
+      },
+      {
+        "id": 11,
+        "user_id": 6,
+        "amount": 45,
+        "description": "Bus Pass",
+        "category": "TRANSPORTATION",
+        "expense_date": "2025-06-30",
+        "created_at": "2025-07-02 11:22:33.368484"
+      },
+      {
+        "id": 12,
+        "user_id": 6,
+        "amount": 60,
+        "description": "Entertainment",
+        "category": "ENTERTAINMENT",
+        "expense_date": "2025-07-01",
+        "created_at": "2025-07-02 11:22:33.375806"
+      },
+      {
+        "id": 13,
+        "user_id": 7,
+        "amount": 75,
+        "description": "Weekly Shopping",
+        "category": "FOOD",
+        "expense_date": "2025-06-27",
+        "created_at": "2025-07-02 11:22:33.443280"
+      },
+      {
+        "id": 14,
+        "user_id": 7,
+        "amount": 40,
+        "description": "Restaurant",
+        "category": "FOOD",
+        "expense_date": "2025-06-28",
+        "created_at": "2025-07-02 11:22:33.455855"
+      },
+      {
+        "id": 15,
+        "user_id": 7,
+        "amount": 120,
+        "description": "Phone Bill",
+        "category": "UTILITIES",
+        "expense_date": "2025-06-29",
+        "created_at": "2025-07-02 11:22:33.466488"
+      },
+      {
+        "id": 16,
+        "user_id": 7,
+        "amount": 200,
+        "description": "Car Payment",
+        "category": "TRANSPORTATION",
+        "expense_date": "2025-06-30",
+        "created_at": "2025-07-02 11:22:33.477462"
+      },
+      {
+        "id": 17,
+        "user_id": 7,
+        "amount": 90,
+        "description": "Gym Membership",
+        "category": "HEALTH",
+        "expense_date": "2025-07-01",
+        "created_at": "2025-07-02 11:22:33.488578"
+      },
+      {
+        "id": 18,
+        "user_id": 8,
+        "amount": 30,
+        "description": "Lunch",
+        "category": "FOOD",
+        "expense_date": "2025-06-27",
+        "created_at": "2025-07-02 11:22:33.569469"
+      },
+      {
+        "id": 19,
+        "user_id": 8,
+        "amount": 10,
+        "description": "Coffee",
+        "category": "FOOD",
+        "expense_date": "2025-06-28",
+        "created_at": "2025-07-02 11:22:33.582504"
+      },
+      {
+        "id": 20,
+        "user_id": 8,
+        "amount": 70,
+        "description": "Electricity",
+        "category": "UTILITIES",
+        "expense_date": "2025-06-29",
+        "created_at": "2025-07-02 11:22:33.595152"
+      },
+      {
+        "id": 21,
+        "user_id": 8,
+        "amount": 25,
+        "description": "Uber",
+        "category": "TRANSPORTATION",
+        "expense_date": "2025-06-30",
+        "created_at": "2025-07-02 11:22:33.605504"
+      },
+      {
+        "id": 22,
+        "user_id": 8,
+        "amount": 40,
+        "description": "Movies",
+        "category": "ENTERTAINMENT",
+        "expense_date": "2025-07-01",
+        "created_at": "2025-07-02 11:22:33.615882"
+      },
+      {
+        "id": 23,
+        "user_id": 5,
+        "amount": 25.5,
+        "description": "Test expense with custom date",
+        "category": "FOOD",
+        "expense_date": "2025-06-29",
+        "created_at": "2025-07-02 11:39:12.984457"
+      }
+    ],
+    "savings_goals": [
+      {
+        "id": 1,
+        "user_id": 5,
+        "target_amount": 1000,
+        "month": "2025-07-01",
+        "description": "Monthly savings target",
+        "created_at": "2025-07-02 11:22:33.192696"
+      },
+      {
+        "id": 2,
+        "user_id": 6,
+        "target_amount": 800,
+        "month": "2025-07-01",
+        "description": "Monthly savings target",
+        "created_at": "2025-07-02 11:22:33.315852"
+      },
+      {
+        "id": 3,
+        "user_id": 7,
+        "target_amount": 1500,
+        "month": "2025-07-01",
+        "description": "Monthly savings target",
+        "created_at": "2025-07-02 11:22:33.429092"
+      },
+      {
+        "id": 4,
+        "user_id": 8,
+        "target_amount": 600,
+        "month": "2025-07-01",
+        "description": "Monthly savings target",
+        "created_at": "2025-07-02 11:22:33.552946"
+      }
+    ]
+  }
+}
